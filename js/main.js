@@ -1,4 +1,7 @@
 var map;
+var drawingManager;
+var searchArea;
+var randomPoints = [];
 
 function getPointsInPolygon(poly, n) {
   n = n || 1;
@@ -34,44 +37,114 @@ function getPointsInPolygon(poly, n) {
   return results;
 }
 
-function initialize() {
-  var mapOptions = {
-    center: { lat: -34.397, lng: 150.644},
-    zoom: 8
-  };
-  map = new google.maps.Map(document.getElementById('map-canvas'),
-      mapOptions);
+function deletePoints() {
+  for (i = 0; i < randomPoints.length; ++i) {
+    randomPoints[i].setMap(null);
+  }
+  randomPoints = [];
+}
 
-  var drawingManager = new google.maps.drawing.DrawingManager({
-    drawingMode: google.maps.drawing.OverlayType.MARKER,
+function resetArea() {
+  deletePoints();
+  searchArea.setMap(null);
+  searchArea = null;
+}
+
+function addPoint() {
+  randomPos = getPointsInPolygon(searchArea, 1)[0]
+  randomPoints[randomPoints.length] = new google.maps.Marker({
+    position: randomPos,
+    map: map,
+    title: "A random point",
+    animation: google.maps.Animation.DROP,
+    optimized: false
+  });
+}
+
+function createMap(pos) {
+  $("#map-canvas").html("");
+
+  var mapOptions;
+  if (pos != null) {
+    mapOptions = {
+      center: pos,
+      zoom: 12
+    };
+  } else {
+    mapOptions = {
+      center: {lat: 0, lng: 0},
+      zoom: 2
+    }
+  }
+
+  map = new google.maps.Map(document.getElementById('map-canvas'), mapOptions);
+
+  drawingManager = new google.maps.drawing.DrawingManager({
+    drawingMode: google.maps.drawing.OverlayType.POLYGON,
     drawingControl: true,
     drawingControlOptions: {
-      position: google.maps.ControlPosition.TOP_CENTER,
-      drawingModes: [
-        google.maps.drawing.OverlayType.POLYGON
-      ]
+      drawingModes: [google.maps.drawing.OverlayType.POLYGON],
+      position: google.maps.ControlPosition.TOP_LEFT
     },
     polygonOptions: {
       fillColor: '#ff0000',
       fillOpacity: 0.33,
       clickable: false,
       zIndex: 1,
-      editable: true,
-      draggable: true
+      editable: false,
+      draggable: false,
+      strokeWeight: 3
     }
   });
 
   google.maps.event.addListener(drawingManager, 'polygoncomplete', function(poly) {
-    randomPoints = getPointsInPolygon(poly, 10);
-    for (i = 0; i < randomPoints.length; ++i) {
-      var marker = new google.maps.Marker({
-          position: randomPoints[i],
-          map: map,
-          title: "A random point"
-      });
+    searchArea = poly;
+    drawingManager.setDrawingMode(null);
+    addPoint();
+  });
+
+  google.maps.event.addListener(drawingManager, 'drawingmode_changed', function() {
+    drawingMode = drawingManager.getDrawingMode();
+    if (drawingMode == google.maps.drawing.OverlayType.POLYGON) {
+      resetArea();
     }
   });
 
   drawingManager.setMap(map);
+
+  $(document).bind('keydown', 'space', function () {
+    if (searchArea != null) {
+      addPoint();
+    }
+  });
+}
+
+function initialize() {
+  if (Modernizr.geolocation) {
+    $("#map-canvas").html("\
+      <div class=\"progress\">\
+        <div class=\"progress-bar progress-bar-striped active\" role=\"progressbar\" aria-valuenow=\"100\" aria-valuemin=\"0\" aria-valuemax=\"100\" style=\"width: 100%\">\
+          Getting current location...\
+        </div>\
+      </div>\
+    ");
+    navigator.geolocation.getCurrentPosition(
+      function (position) {
+        var center = new google.maps.LatLng(position.coords.latitude,
+                                            position.coords.longitude);
+        createMap(center);
+      },
+      function (error) {
+        // Error
+        console.log("Error getting location: " + error.message);
+        createMap(null);
+      },
+      {
+//        maximumAge: 5 * 60 * 1000 // Accept cached values within 2500s
+      }
+    );
+  } else {
+    createMap(null);
+  }
 }
 google.maps.event.addDomListener(window, 'load', initialize);
