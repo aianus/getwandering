@@ -29,7 +29,7 @@ gulp.task('js', ['clean'], function() {
       .pipe(coffee())
       .pipe(coffeeFilter.restore())
       .pipe(concat("application.js"))
-      .pipe(gutil.env.production ? uglify() : gutil.noop())
+      .pipe(gutil.env.production ? uglify({mangle: {toplevel: true}}) : gutil.noop())
       .pipe(gulp.dest("build/assets"))
       .pipe(sourceMaps.write("."));
 });
