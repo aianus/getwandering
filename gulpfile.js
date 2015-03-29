@@ -40,7 +40,12 @@ gulp.task('css', ['clean'], function() {
       .pipe(gulp.dest("build/assets"));
 });
 
-gulp.task('compile_assets', ['html', 'css', 'js']);
+gulp.task('images', ['clean'], function() {
+  return gulp.src("./images/**/*", {base: "./images"})
+    .pipe(gulp.dest("build/assets/images"));
+});
+
+gulp.task('compile_assets', ['html', 'css', 'js', 'images']);
 
 gulp.task('cache-bust', ['compile_assets'], function() {
   return gulp.src(["./build/**"])
@@ -75,11 +80,11 @@ gulp.task('publish', ['cache-bust'], function() {
             },
 
             "^.+\\.html": {
-                // apply gzip with extra options
-                gzip: {
-                    // Add .gz extension.
-                    ext: ".gz"
-                }
+              cacheTime: 0,
+              headers: {
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                "Expires": 0
+              }
             },
 
             // pass-through for anything that wasn't matched by routes above, to be uploaded with default options

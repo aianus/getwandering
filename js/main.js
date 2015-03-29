@@ -112,22 +112,20 @@ function createMap(pos) {
 
   drawingManager.setMap(map);
 
-  $(document).bind('keydown', 'space', function () {
-    if (searchArea != null) {
+  $(document).bind('keydown', function (event) {
+    if (event.which == 32 && searchArea != null) {
       addPoint();
     }
   });
 }
 
 function initialize() {
+  $('#instructions-modal').modal();
+  $('#instructions-carousel').on('slide.bs.carousel', function (event) {
+    if (event.direction == 'left' && event.relatedTarget.id == 'first-instruction-slide')
+      $('#instructions-modal').modal('hide');
+  });
   if (Modernizr.geolocation) {
-    $("#map-canvas").html("\
-      <div class=\"progress\">\
-        <div class=\"progress-bar progress-bar-striped active\" role=\"progressbar\" aria-valuenow=\"100\" aria-valuemin=\"0\" aria-valuemax=\"100\" style=\"width: 100%\">\
-          Getting current location...\
-        </div>\
-      </div>\
-    ");
     navigator.geolocation.getCurrentPosition(
       function (position) {
         var center = new google.maps.LatLng(position.coords.latitude,
@@ -140,7 +138,7 @@ function initialize() {
         createMap(null);
       },
       {
-//        maximumAge: 5 * 60 * 1000 // Accept cached values within 2500s
+        maximumAge: 5 * 60 * 1000 // Accept cached values within last 5 minutes
       }
     );
   } else {
